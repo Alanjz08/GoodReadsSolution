@@ -5,6 +5,7 @@ from urllib.parse import parse_qsl, urlparse
 import re
 import redis
 import uuid 
+from bs4 import BeautifulSoup
 
 r = redis.Redis(host='localhost', port=6379, db=0)
 
@@ -45,13 +46,16 @@ class WebRequestHandler(BaseHTTPRequestHandler):
 
     def get_book_recomendation(self, session_id, book_id):
         r.rpush(session_id, book_id)
-        books = r.lrange(session_id, 0, 5)
+        books = r.lrange(session_id, 0, 6)
+        all_books = [str(i+1) for i in range(6)]
         print(session_id, books)
-        all_books = [str(i+1) for i in range(4)]
         new = [b for b in all_books if b not in
-               [vb.decode() for vb in books]]
-        if new:
+              [vb.decode() for vb in books]]
+        if len(new)>=3:
+            return "Mira mas libros"
+        elif len(new)<=3 and new:
             return new[0]
+
 
     def get_book(self, book_id):
         session_id = self.get_book_session()
@@ -90,6 +94,16 @@ class WebRequestHandler(BaseHTTPRequestHandler):
             if match:
                 return (method, match.groupdict())
 
+##PROBAR EL CODIGO 
+    def get_words(self):
+        claves = []
+        #frase = self.get_index()
+        for key in r.keys('book*'):
+            html =  r.get(key)
+            soup = BeautifulSoup(html, 'html.parser') 
+            #if frase in soup.get_text():
+             #   claves.append(key.decode())
+        return claves
 
 mapping = [
             (r'^/books/(?P<book_id>\d+)$', 'get_book'),
