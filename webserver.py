@@ -2,12 +2,9 @@ from functools import cached_property
 from http.cookies import SimpleCookie
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from urllib.parse import parse_qsl, urlparse
+import redis
 
-# Código basado en:
-# https://realpython.com/python-http-server/
-# https://docs.python.org/3/library/http.server.html
-# https://docs.python.org/3/library/http.cookies.html
-
+r = redis.Redis(host='localhost', port=6379, db=0)
 
 class WebRequestHandler(BaseHTTPRequestHandler):
     @cached_property
@@ -15,7 +12,7 @@ class WebRequestHandler(BaseHTTPRequestHandler):
         return urlparse(self.path)
 
     @cached_property
-    def query_data(self):
+    def query_data(self): #diccionario que incluye el query string
         return dict(parse_qsl(self.url.query))
 
     @cached_property
@@ -33,17 +30,22 @@ class WebRequestHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         self.send_response(200)
-        self.send_header("Content-Type", "text/html")
+        self.send_header("Content-Type", "text/html; charset=utf-8")
         self.end_headers()
-        self.wfile.write(self.get_response().encode("utf-8"))
+        books = None
+        if self.query_data and 'q' in self.query_data:
+            books = r.sinter(self.query_data['q'].split(' '))
+        self.wfile.write(self.get_response(books).encode("utf-8"))
 
-    def get_response(self):
+    def get_response(self, books):
         return f"""
     <h1> Hola Web </h1>
-    <p>  {self.path}         </p>
-    <p>  {self.headers}      </p>
-    <p>  {self.cookies}      </p>
+    <form action="/search" method="get">
+        <label for="q"> Busqueda </label>
+        <input type="text" name="q" required/>
+    </form>
     <p>  {self.query_data}   </p>
+    <p>{books}</p>
 """
 
 

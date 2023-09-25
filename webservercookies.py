@@ -94,17 +94,6 @@ class WebRequestHandler(BaseHTTPRequestHandler):
             if match:
                 return (method, match.groupdict())
 
-##PROBAR EL CODIGO 
-    def get_words(self):
-        claves = []
-        #frase = self.get_index()
-        for key in r.keys('book*'):
-            html =  r.get(key)
-            soup = BeautifulSoup(html, 'html.parser') 
-            #if frase in soup.get_text():
-             #   claves.append(key.decode())
-        return claves
-
 mapping = [
             (r'^/books/(?P<book_id>\d+)$', 'get_book'),
             (r'^/$', 'get_index')
