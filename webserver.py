@@ -29,6 +29,7 @@ class WebRequestHandler(BaseHTTPRequestHandler):
         return SimpleCookie(self.headers.get("Cookie"))
 
     def do_GET(self):
+        print('get')
         self.send_response(200)
         self.send_header("Content-Type", "text/html; charset=utf-8")
         self.end_headers()
@@ -38,6 +39,7 @@ class WebRequestHandler(BaseHTTPRequestHandler):
         self.wfile.write(self.get_response(books).encode("utf-8"))
 
     def get_response(self, books):
+        print('response')
         return f"""
     <h1> Hola Web </h1>
     <form action="/search" method="get">

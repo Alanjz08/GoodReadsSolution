@@ -17,6 +17,11 @@ class WebRequestHandler(BaseHTTPRequestHandler):
     @cached_property
     def cookies(self):
         return SimpleCookie(self.headers.get("Cookie"))
+    
+    @cached_property
+    def query_data(self): #diccionario que incluye el query string
+        return dict(parse_qsl(self.url.query))
+
 
     def set_book_cookie(self, session_id, max_age=10):
         c = SimpleCookie()
@@ -58,6 +63,7 @@ class WebRequestHandler(BaseHTTPRequestHandler):
 
 
     def get_book(self, book_id):
+        print('book')
         session_id = self.get_book_session()
         book_recomendation = self.get_book_recomendation(session_id, book_id)
         book_page = r.get(book_id)
@@ -79,24 +85,48 @@ class WebRequestHandler(BaseHTTPRequestHandler):
             self.send_error(404, "Not Found")
 
     def get_index(self):
+        print('index')
         session_id = self.get_book_session()
         self.send_response(200)
-        self.send_header("Content-Type", "text/html")
+        self.send_header("Content-Type", "text/html; charset=utf-8")
         self.set_book_cookie(session_id)
         self.end_headers()
         with open('html/index.html') as f:
             response = f.read()
+        books = None
+        response += self.get_response(books)
         self.wfile.write(response.encode("utf-8"))
 
+     
+    def get_response(self, books):
+        print('response')
+        return f"""
+        <form action="/search" method="get">
+            <label for="q"> Búsqueda </label>
+            <input type="text" name="q" required/>
+        </form>
+        <p> {self.query_data} </p>
+        <p>{books}</p>
+""" 
+    def get_search(self):
+        print('busqueda')
+        if self.query_data and 'q' in self.query_data:
+            books = r.sinter(self.query_data['q'].split(' '))
+        self.wfile.write(self.get_index)    
+
+
     def get_method(self, path):
+        print('metodo')
         for pattern, method in mapping:
             match = re.match(pattern, path)
             if match:
+                print('map')
                 return (method, match.groupdict())
 
 mapping = [
             (r'^/books/(?P<book_id>\d+)$', 'get_book'),
-            (r'^/$', 'get_index')
+            (r'^/$', 'get_index'),
+            (r'^(?<=q=)[^&]+', 'get_search')
         ]
 
 if __name__ == "__main__":
