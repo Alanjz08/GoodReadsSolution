@@ -40,7 +40,7 @@ class WebRequestHandler(BaseHTTPRequestHandler):
         return c.get("session").value
 
     def do_GET(self):
-        method = self.get_method(self.url.path)
+        method = self.get_method(self.path)
         if method:
             method_name, dict_params = method
             method = getattr(self, method_name)
@@ -85,7 +85,6 @@ class WebRequestHandler(BaseHTTPRequestHandler):
             self.send_error(404, "Not Found")
 
     def get_index(self):
-        print('index')
         session_id = self.get_book_session()
         self.send_response(200)
         self.send_header("Content-Type", "text/html; charset=utf-8")
@@ -99,7 +98,6 @@ class WebRequestHandler(BaseHTTPRequestHandler):
 
      
     def get_response(self, books):
-        print('response')
         return f"""
         <form action="/search" method="get">
             <label for="q"> Búsqueda </label>
@@ -109,16 +107,47 @@ class WebRequestHandler(BaseHTTPRequestHandler):
         <p>{books}</p>
 """ 
     def get_search(self):
-        print('busqueda')
         if self.query_data and 'q' in self.query_data:
-            books = r.sinter(self.query_data['q'].split(' '))
-        self.wfile.write(self.get_index)    
+            query = self.query_data['q']
+            keywords = query.split(',')
+        
+            # Filtra palabras clave vacías y limita a un máximo de tres
+            keywords = [kw.strip() for kw in keywords if kw.strip()][:3]
+            print(keywords)
+            if keywords:
+                # Realiza una búsqueda basada en las palabras clave
+                if len(keywords) == 1:
+                    booksB = r.sinter(keywords[0])
+                elif len(keywords) == 2:
+                    booksB = r.sinter(keywords[0], keywords[1])
+                else:
+                    booksB = r.sinter(keywords[0], keywords[1], keywords[2])
+                
+                lista_libros = [b.decode() for b in booksB]
+                if lista_libros:
+                    for libro in lista_libros:
+                        self.get_book(libro)
+                else:
+                    # Si no se encontraron libros, redirige a la página de inicio
+                    self.get_index()
+            else:
+                # Si no se proporcionaron palabras clave válidas, redirige a la página de inicio
+                self.get_index()
+        else:
+            # Si no se proporcionó una consulta de búsqueda válida, redirige a la página de inicio
+            self.get_index()
+
+        self.send_response(200)
+        self.send_header('Content-type', 'text/html')
+        self.end_headers()
+
 
 
     def get_method(self, path):
         print('metodo')
         for pattern, method in mapping:
             match = re.match(pattern, path)
+            print(path)
             if match:
                 print('map')
                 return (method, match.groupdict())
@@ -126,7 +155,7 @@ class WebRequestHandler(BaseHTTPRequestHandler):
 mapping = [
             (r'^/books/(?P<book_id>\d+)$', 'get_book'),
             (r'^/$', 'get_index'),
-            (r'^(?<=q=)[^&]+', 'get_search')
+            (r'^/search\?q=([^&]+)$', 'get_search')
         ]
 
 if __name__ == "__main__":
