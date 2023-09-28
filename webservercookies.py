@@ -107,38 +107,24 @@ class WebRequestHandler(BaseHTTPRequestHandler):
         <p>{books}</p>
 """ 
     def get_search(self):
+        print(self.query_data)
         if self.query_data and 'q' in self.query_data:
-            query = self.query_data['q']
-            keywords = query.split(',')
-        
-            # Filtra palabras clave vacías y limita a un máximo de tres
-            keywords = [kw.strip() for kw in keywords if kw.strip()][:3]
+            print('Intento de interseccion')
+            keywords = self.query_data['q'].split(',')
             print(keywords)
-            if keywords:
-                # Realiza una búsqueda basada en las palabras clave
-                if len(keywords) == 1:
-                    booksB = r.sinter(keywords[0])
-                elif len(keywords) == 2:
-                    booksB = r.sinter(keywords[0], keywords[1])
-                else:
-                    booksB = r.sinter(keywords[0], keywords[1], keywords[2])
-                
-                lista_libros = [b.decode() for b in booksB]
-                if lista_libros:
-                    for libro in lista_libros:
-                        self.get_book(libro)
-                else:
-                    # Si no se encontraron libros, redirige a la página de inicio
-                    self.get_index()
+            booksB = r.smembers(keywords)
+            if booksB:
+                print('si hay books', booksB)
             else:
-                # Si no se proporcionaron palabras clave válidas, redirige a la página de inicio
                 self.get_index()
-        else:
-            # Si no se proporcionó una consulta de búsqueda válida, redirige a la página de inicio
+        lista_libros = [b.decode() for b in booksB]
+        for libro in lista_libros:
+            self.get_book(libro)     
+        if len(lista_libros) < len(booksB):
             self.get_index()
 
         self.send_response(200)
-        self.send_header('Content-type', 'text/html')
+        self.send_header('Content-type','text/html')
         self.end_headers()
 
 
