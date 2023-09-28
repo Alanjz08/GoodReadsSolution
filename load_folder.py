@@ -22,9 +22,16 @@ def load_folder(path):
 
 def create_index(book_id, html):
     soup = BeautifulSoup(html, 'html.parser')
-    texto = soup.get_text()
-    lista_texto = texto.split(' ')
+    tag = soup.get_text().lower()
+    tag = tag.encode('utf-8').decode('utf-8')
+    lista_texto = tag.split()
+    
+    # Recorre la lista de palabras y reemplaza las comas en cada palabra
+    for i in range(len(lista_texto)):
+        lista_texto[i] = lista_texto[i].replace(",", "").replace(".","")
+
+    # Agrega el book_id a los conjuntos correspondientes
     for t in lista_texto:
-        r.sadd(t,book_id)
+        r.sadd(t, book_id)
 
 load_folder('html/books/')
