@@ -112,9 +112,9 @@ class WebRequestHandler(BaseHTTPRequestHandler):
             print('Intento de interseccion')
             keywords = self.query_data['q'].split(',')
             print(keywords)
-            booksB = r.smembers(keywords)
+            booksB = r.sinter(keywords)
             if booksB:
-                print('si hay books', booksB)
+                print('si hay books')
             else:
                 self.get_index()
         lista_libros = [b.decode() for b in booksB]
